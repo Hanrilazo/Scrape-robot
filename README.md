@@ -1,8 +1,15 @@
-# Scrape-robot — GoldSweepScalper (MT5)
+# Scrape-robot — GoldSweepScalper (MT5 and MT4)
 
 XAUUSD **M1 liquidity-sweep scalper** with a **scale-in basket** of 0.01-lot tickets.
-Written in MQL5 for **hedging accounts only**. It has not been compiled or run against a broker
-from the environment it was written in — compile it, then backtest and demo-trade it before risking money.
+
+| Version | Folder | Needs |
+|---|---|---|
+| MT5 | `MQL5/` | a **hedging** MT5 account (the EA refuses netting accounts) |
+| MT4 | `MQL4/` | a normal MT4 account (MT4 is always hedging; FIFO/US accounts cannot run it) |
+
+Both versions implement the same rules, guards and journal. Neither has been run against a broker from
+the environment they were written in — compile, backtest and demo-trade before risking money. See
+[MT4 version](#mt4-version) for the differences.
 
 ## Strategy in one paragraph
 
@@ -96,11 +103,44 @@ Files are written to `Terminal\Common\Files\GoldSweep\live\` (live) or `...\test
 
 This is trading software, not financial advice. Past results do not predict future results.
 
+## MT4 version
+
+Same strategy, inputs, guards and CSV journal, ported to MQL4 in `MQL4/`.
+
+**Install:** *File → Open Data Folder* in **MT4**, copy the contents of this repo's `MQL4` folder into that
+`MQL4` folder (`Experts`, `Include`), open `MQL4/Experts/GoldSweepScalper/GoldSweepScalper.mq4` in MetaEditor, press F7
+(expect 0 errors), then attach to an XAUUSD M1 chart with *Tools → Options → Expert Advisors → Allow automated trading*
+and the AutoTrading button on.
+
+**What is different from MT5:**
+
+* **No calendar API in MT4.** The news filter reads `Common\Files\GoldSweep\news.csv` in live trading *and* in the tester.
+  Create the file by running the **MT5** script `ExportNewsCalendar` (MQL5 folder). MT4 and MT5 on the same PC share
+  the `Common` folder, so MT4 finds the file by itself. Without it the filter is inactive (the Experts tab says so).
+  Re-run the script now and then to cover upcoming weeks. The EA reloads the file every hour.
+* **No trade events in MT4.** The basket tracks its own ticket numbers and a 1-second timer deletes pending adds right
+  after a take-profit or stop. Between a TP and the next timer/tick (about a second) a pending add could still fill;
+  it carries the same SL/TP and the EA closes it with the basket. Run it on a VPS with a stable connection.
+* **Close reasons are inferred** from the order comment (`[tp]`/`[sl]`) and the close price versus SL/TP, because MT4 has no deal
+  reason. Anything else shows as `MANUAL_OR_OTHER`.
+* **Order handling:** market-execution brokers that reject SL/TP on the open request are handled (the EA opens, then sets
+  the stops, and closes the trade again if the stops cannot be set — it never leaves a naked position).
+* **Account history:** set the *Account History* tab to **All History** so the daily-loss counters can be rebuilt after a restart.
+* **Screenshots** (`WindowScreenShot`) are live-only and go to `MQL4\Files\GoldSweep\screens\`.
+* **Weaker backtest.** The MT4 tester builds ticks from M1 bars, so the exact wick shapes and spreads this strategy depends
+  on are approximated. Treat MT4 backtests as a smoke test (does it trade, do the filters work) and rely on **demo
+  forward-testing** (100+ baskets) for the real verdict. Download M1 history first (*Tools → History Center*, F2) — MT4 only
+  tests the history your broker provides. Use a realistic fixed spread in the tester settings and set
+  `InpCommissionPerLotRT` to your account's real commission.
+* `OnTester` computes its own profit factor and drawdown (MT4 has no `TesterStatistics`).
+
 ## Repository layout
 
 ```
-MQL5/Experts/GoldSweepScalper/GoldSweepScalper.mq5   inputs + event handlers
+MQL5/Experts/GoldSweepScalper/GoldSweepScalper.mq5   MT5 inputs + event handlers
 MQL5/Include/GoldSweepScalper/                       Utils, State, Journal, News, Levels, Filters,
                                                      Risk, Panel, Basket, Signal
-MQL5/Scripts/GoldSweepScalper/ExportNewsCalendar.mq5 calendar -> news.csv for the tester
+MQL5/Scripts/GoldSweepScalper/ExportNewsCalendar.mq5 calendar -> news.csv (also feeds the MT4 version)
+MQL4/Experts/GoldSweepScalper/GoldSweepScalper.mq4   MT4 inputs + event handlers
+MQL4/Include/GoldSweepScalper/                       same module names, MQL4 trading API
 ```
