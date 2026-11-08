@@ -1,0 +1,15 @@
+InpMagic=20260507
+InpMaxTickets=1
+InpSamePriceMode=false
+InpTargetPips=12
+InpLockTriggerPips=8
+InpLockOffsetPips=2
+InpMaxRiskPerBasketPct=5
+InpDailyMaxLossPct=8
+InpMaxDrawdownPct=25
+InpCommissionPerLotRT=0
+InpUseHTFBias=false
+InpSessions=
+InpMaxATRUSD=10
+InpMaxStopToTarget=6
+InpMaxSpreadUSD=0.4
