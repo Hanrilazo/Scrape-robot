@@ -50,6 +50,7 @@ input double InpPipSizeUSD         = 0.10;       // Price value of 1 pip (gold: 
 input double InpSLBufferATR        = 0.3;        // SL buffer beyond wick (x ATR, + spread)
 input double InpMaxStopToTarget    = 3.0;        // Skip if first-entry stop > x target
 input double InpMinAddStepPips     = 4.0;        // Min spacing between tickets (pips)
+input bool   InpSamePriceMode     = false;      // Open ALL tickets at once at market (same price), no spaced adds
 input int    InpAddWindowBars      = 15;         // Pending adds expire after N bars
 input double InpLockTriggerPips    = 8.0;        // Lock: profit beyond basket break-even (0 = off)
 input double InpLockOffsetPips     = 2.0;        // Lock: SL = break-even + this

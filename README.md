@@ -133,6 +133,12 @@ and the AutoTrading button on.
   tests the history your broker provides. Use a realistic fixed spread in the tester settings and set
   `InpCommissionPerLotRT` to your account's real commission.
 * `OnTester` computes its own profit factor and drawdown (MT4 has no `TesterStatistics`).
+* **Same-price mode (MT4 only, `InpSamePriceMode`, default off).** Instead of spaced limit orders, all tickets
+  (`InpMaxTickets`, up to 6) are opened at market together and share one SL and one TP (`InpTargetPips`).
+  This is a single position of N x 0.01 lot: the loss on a stop-out is N times larger than for one ticket, and the
+  per-basket risk limit (`InpMaxRiskPerBasketPct`) will cut the ticket count to fit. On a $100 account, 5 tickets with a
+  $2.50 stop is about a $12.50 loss (12.5%), so the limit would have to be raised to run all 5. A target of 5-10 pips ($0.50-$1.00)
+  is of the same size as a normal gold spread, so check the real spread first. Use it on a demo or in the tester only.
 
 ## Repository layout
 

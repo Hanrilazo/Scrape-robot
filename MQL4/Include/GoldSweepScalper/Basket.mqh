@@ -275,8 +275,11 @@ string Basket_TryOpen(const SweepSignal &sig)
    int T = MathMax(1, MathMin(InpMaxTickets, 6));
    double span = MathAbs(sig.wick - ref);
    int A = T - 1;
-   int byStep = (int)MathFloor(span / U_Pip(InpMinAddStepPips)) - 1;
-   A = MathMax(0, MathMin(A, byStep));
+   if(!InpSamePriceMode)
+     {
+      int byStep = (int)MathFloor(span / U_Pip(InpMinAddStepPips)) - 1;
+      A = MathMax(0, MathMin(A, byStep));
+     }
 
    double budget = AccountEquity() * InpMaxRiskPerBasketPct / 100.0;
    double px[];
@@ -284,7 +287,7 @@ string Basket_TryOpen(const SweepSignal &sig)
      {
       ArrayResize(px, A + 1);
       px[0] = ref;
-      double step = (A > 0) ? span / (A + 1) : 0.0;
+      double step = (A > 0 && !InpSamePriceMode) ? span / (A + 1) : 0.0;
       for(int k = 1; k <= A; k++)
          px[k] = (dir > 0) ? ref - k * step : ref + k * step;
       double worst  = Risk_WorstCase(px, A + 1, sl);
@@ -346,14 +349,33 @@ string Basket_TryOpen(const SweepSignal &sig)
       Exec_SetStops(t1, sl, tpReal);
 
    //--- scale-in limit orders between the fill and the wick
+   //--- (same-price mode: the extra tickets are market orders opened right now)
    datetime addExpiry = TimeCurrent() + InpAddWindowBars * 60;
    g_bk.addsExpire = addExpiry;
 
    double span2 = MathAbs(sig.wick - fill);
-   double step2 = (A > 0) ? span2 / (A + 1) : 0.0;
+   double step2 = (A > 0 && !InpSamePriceMode) ? span2 / (A + 1) : 0.0;
    int placed = 0;
    for(int k = 1; k <= A; k++)
      {
+      if(InpSamePriceMode)
+        {
+         string cm = "GSS|" + IntegerToString(g_bk.id) + "|" + IntegerToString(k + 1);
+         int errm = 0;
+         int tm = Exec_Market(dir, g_lot, sl, tpReal, cm, errm);
+         if(tm > 0)
+           {
+            double fm = ref;
+            if(OrderSelect(tm, SELECT_BY_TICKET))
+               fm = OrderOpenPrice();
+            Basket_Track(tm, k + 1, ref, true);
+            placed++;
+            Journal_Event("ADD_MARKET", fm, g_lot, ((dir > 0) ? (fm - ref) : (ref - fm)) / g_pip, "n=" + IntegerToString(k + 1));
+           }
+         else
+            Journal_Event("ADD_FAILED", ref, g_lot, 0.0, "error=" + IntegerToString(errm));
+         continue;
+        }
       double p = U_RoundTick((dir > 0) ? fill - k * step2 : fill + k * step2);
       double mkt = (dir > 0) ? MarketInfo(_Symbol, MODE_ASK) : MarketInfo(_Symbol, MODE_BID);
       double dist = (dir > 0) ? (mkt - p) : (p - mkt);
